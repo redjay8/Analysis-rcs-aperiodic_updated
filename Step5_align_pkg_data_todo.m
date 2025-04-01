@@ -23,7 +23,7 @@ aperiodic_file = fullfile(pathName, sprintf('aperiodic_timeseries_%s_%s.mat', br
 fprintf('Loading aperiodic results from: %s\n', aperiodic_file);
 load(aperiodic_file);
 
-%% 3. Load PKG data using your existing loading process
+%% 3. Load PKG data based on Code Ocean
 fprintf('Loading PKG data...\n');
 
 % Map side abbreviation to full name for PKG filename
