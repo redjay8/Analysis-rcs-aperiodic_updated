@@ -21,10 +21,7 @@ load(combined_file);
 %% 3. Identify medication states from eventLogTable [TENTATIVE needs testing]
 fprintf('Identifying medication states from event log...\n');
 
-%% 3. Identify medication states from eventLogTable
-fprintf('Identifying medication states from event log...\n');
-
-% Initialize array to track medication state (0 = OFF, 1 = ON)
+% Array to track medication state (0 = OFF, 1 = ON)
 med_state = zeros(size(combinedDataTable, 1), 1);
 
 if ~isempty(eventLogTable)
