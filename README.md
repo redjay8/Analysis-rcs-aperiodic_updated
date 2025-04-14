@@ -6,7 +6,7 @@ Test pipeline on some data
 
 ### %% Changes:  
 ### Step4_calculate_rolling_aperiodic.m  
-Now adopting three methods due to mismatch in neural data and PKG sampling frequencies  
+Now adopting three methods accounting for mismatch in neural data and PKG sampling frequencies  
 % Method 1 (60s windows with 5s steps):  
 % High temporal resolution, but multiple neural measures map to one PKG reading  
 % Method 2: Hybrid approach (120s steps, aligned to end at PKG times):  
