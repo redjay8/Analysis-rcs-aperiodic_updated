@@ -15,7 +15,8 @@ Now adopting three methods due to mismatch in neural data and PKG sampling frequ
 % Method 3: Averaging approach (5s steps, averaged per PKG interval):  
 % Leverages all data but reduces dimensionality  
   
-### Step5_align_pkg_data  
+### Step5_align_pkg_data.m  
 % Framework now complete and ready for testing  
 % Import PKG data from CSV format and align with aperiodic exponents  
 % Performs sensitivity testing across all three methods  
+% Basic summary of exploratory statistics
