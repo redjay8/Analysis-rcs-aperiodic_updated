@@ -1,8 +1,8 @@
 # Analysis-rcs-aperiodic  
 
 %% To do:  
-%% Setup differential 1/f biomarker analysis based on identifying medication states from eventLogTable
-%% Test pipeline on some data  
+Setup differential 1/f biomarker analysis based on identifying medication states from eventLogTable
+Test pipeline on some data  
 
 %% Changes:
 %% Step4_calculate_rolling_aperiodic.m
