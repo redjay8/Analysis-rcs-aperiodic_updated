@@ -5,6 +5,11 @@
 % Test pipeline on some data  
 
 ### %% Changes:  
+
+### Step4b_visualize_fooof_fits.m
+Now able to visualize individual FOOOF fits for selected time windows from LFP data.
+% NOTE: only validated on demo data as of now.
+
 ### Step4_calculate_rolling_aperiodic.m  
 Now adopting three methods accounting for mismatch in neural data and PKG sampling frequencies  
 % Method 1 (60s windows with 5s steps):  
