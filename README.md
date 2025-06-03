@@ -1,11 +1,9 @@
 # Analysis-rcs-aperiodic  
 
-## Descriptions by script:
-
-### Step1.m:  
+## Step1.m:  
 Implements ProcessRCS
 
-### Step2.m:
+## Step2.m:
 Performs center-aligned temporal segmentation of neural time series data with contralateral PKG (Parkinson's Kinetigraph) measurements for spectral analysis. Key processing steps include:
 
 #### Data Integration:
