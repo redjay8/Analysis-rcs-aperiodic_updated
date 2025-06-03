@@ -57,4 +57,25 @@ All extracted features—including original segment metadata, clinical states, L
 
 This systematic approach allows for a detailed characterization of how both aperiodic and periodic neural activity relate to varying clinical states and medication levels. The use of FOOOF is critical for disentangling these two components of the neural power spectrum, which builds the foundation of investigating whether aperiodics offer orthogonal value over beta and gamma power.
 
+## Step4.ipynb:
 
+#### Comprehensive within-subject analysis:
+
+Loads preprocessed data from the previous step, which includes neural features (aperiodic components like Exponent and Offset from FOOOF analysis, and oscillatory power in Beta and Gamma bands) and aligned PKG scores.
+Filters data based on the quality of the FOOOF aperiodic fit (e.g., R2≥0.5), ensuring that derived aperiodic parameters are reliable.
+Crucially, we redefine granular clinical states (e.g., "Immobile", "Non-Dyskinetic Mobile", "Transitional Mobile", "Dyskinetic Mobile", "Sleep") based on thresholds applied to PKG bradykinesia (BK) and dyskinesia (DK) scores.
+
+#### Correlation Analyses:
+Calculates Spearman rank correlations (robust to non-normally distributed data common in biology) to assess relationships between neural features and PKG scores.
+Bivariate correlations explore direct relationships.
+Partial correlations are employed to explore any orthogonal relationship between an aperiodic feature and a PKG score while controlling for the influence of oscillatory power (Beta, Gamma). This is important as aperiodic and oscillatory activities can co-vary.
+
+#### Predictive Modeling:
+Utilizes multiple linear regression (MLR), primarily focusing on the "WideFreq" band for aperiodic parameters.
+We build tiered models to predict PKG symptom scores using:
+            Aperiodic features (Exponent or Offset) alone.
+            Oscillatory features (Beta and Gamma power) alone.
+            A combination of aperiodic and oscillatory features. This approach helps to determine the independent and combined predictive utility of different neural signal components.
+
+#### Data Export:
+We prepare and saves a final, consolidated data table containing selected raw and derived metrics per time window, channel, and frequency band. This table is formatted for subsequent cross-subject analyses.
