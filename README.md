@@ -89,7 +89,7 @@ This section outlines a potential mini-project that can leverage the existing co
 A potential research question to explore is:
 *   "How might the correlation directions and strengths between aperiodic features (e.g., exponent, offset) and granular Parkinson's symptoms (e.g., bradykinesia, dyskinesia, tremor) vary across different, defined movement states (e.g., immobile, non-dyskinetic mobile, dyskinetic mobile)?"
 
-This question aligns with iterative discussions regarding the nuanced relationship between neural signals and motor symptoms.
+This question aligns with iterative discussions regarding the nuanced relationship between aperiodic metrics and motor symptoms.
 
 ### Rationale
 
