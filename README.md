@@ -62,7 +62,6 @@ This systematic approach allows for a detailed characterization of how both aper
 #### Comprehensive within-subject analysis:
 
 Loads preprocessed data from the previous step, which includes neural features (aperiodic components like Exponent and Offset from FOOOF analysis, and oscillatory power in Beta and Gamma bands) and aligned PKG scores.
-Filters data based on the quality of the FOOOF aperiodic fit (e.g., R2≥0.5), ensuring that derived aperiodic parameters are reliable.
 Crucially, we redefine granular clinical states (e.g., "Immobile", "Non-Dyskinetic Mobile", "Transitional Mobile", "Dyskinetic Mobile", "Sleep") based on thresholds applied to PKG bradykinesia (BK) and dyskinesia (DK) scores.
 
 #### Correlation Analyses:
