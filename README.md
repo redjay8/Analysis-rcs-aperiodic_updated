@@ -78,3 +78,39 @@ We build tiered models to predict PKG symptom scores using:
 
 #### Data Export:
 We prepare and saves a final, consolidated data table containing selected raw and derived metrics per time window, channel, and frequency band. This table is formatted for subsequent cross-subject analyses.
+
+
+## Suggested Mini-Project: Exploring Aperiodic Features Across Movement States
+
+This section outlines a potential mini-project that can leverage the existing codebase and foundational analysis to explore a specific research question. It is designed to facilitate deeper understanding of the data and methods.
+
+### Objective
+
+A potential research question to explore is:
+*   "How might the correlation directions and strengths between aperiodic features (e.g., exponent, offset) and granular Parkinson's symptoms (e.g., bradykinesia, dyskinesia, tremor) vary across different, defined movement states (e.g., immobile, non-dyskinetic mobile, dyskinetic mobile)?"
+
+This question aligns with iterative discussions regarding the nuanced relationship between neural signals and motor symptoms.
+
+### Rationale
+
+This mini-project can serve as an excellent opportunity for someone new to the project or pipeline to:
+*   Become familiar with the existing data processing and analysis scripts.
+*   Gain hands-on experience by applying established methods to a well-defined, bounded question.
+*   Build directly upon the data and scripts already established, facilitating knowledge transfer.
+*   Potentially generate an initial, tangible contribution to the broader research goals.
+
+### Potential Approach & Tasks
+
+Guidance can be drawn from the existing `step4.ipynb` notebook and prior presentations. The following steps outline a possible approach:
+
+1.  **Understand Movement State Definitions:**
+    *   Familiarize oneself with the implementation of Movement States (e.g., Sleep, Immobile, Non-Dyskinetic Mobile, Transitional Mobile, Dyskinetic Mobile).
+    *   These states are defined and implemented at the beginning of the `step4.ipynb` notebook (refer to Cell 3 for point-by-point definitions). This implementation is consistent with prior work, such as "Motor network gamma oscillations in chronic home recordings predict dyskinesia in Parkinson's disease" (PMID: 38195196).
+
+2.  **Adapt Existing Analysis Code:**
+    *   The existing correlation and stratification code within `step4.ipynb` (e.g., logic similar to that in Cell 5, which performs state-specific correlations) can be modified.
+    *   This adaptation would focus on analyzing aperiodic-symptom relationships specifically within each of the pre-defined movement states.
+
+3.  **Analyze and Compare Results:**
+    *   The analysis can involve quantifying and comparing correlation strengths and directions across the different movement states.
+    *   Generate proper visualizations to clearly present the findings from the state-specific analyses.
