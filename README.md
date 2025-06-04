@@ -12,7 +12,7 @@ Umbrella/
 ├── RCS03/  
 │   └── ... (data files for RCS03)  
 ├── ...  
-└── RCS20/
+└── RCS20/  
 └── ... (data files for RCS20)  
 
 All scripts were ran on the curated RCS 3 Day Sprint Data arranged by RCS number.  
