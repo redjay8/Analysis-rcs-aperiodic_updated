@@ -1,20 +1,20 @@
 # Analysis-rcs-aperiodic
 
 ## Important: File and Data Structure
-This project follows a specific directory structure to keep code and data organized. Below is an overview of this structure:
-Umbrella/
-├── Code/
-│   └── ... (your scripts and code files)
-└── Data/
-├── RCS02/
-│   └── ... (data files for RCS02)
-├── RCS03/
-│   └── ... (data files for RCS03)
-├── ...
+This project follows a specific directory structure to keep code and data organized. Below is an overview of this structure:  
+Umbrella/  
+├── Code/  
+│   └── ... (your scripts and code files)  
+└── Data/  
+├── RCS02/  
+│   └── ... (data files for RCS02)  
+├── RCS03/  
+│   └── ... (data files for RCS03)  
+├── ...  
 └── RCS20/
-└── ... (data files for RCS20)
+└── ... (data files for RCS20)  
 
-All scripts were ran on the curated RCS 3 Day Sprint Data arranged by RCS number.
+All scripts were ran on the curated RCS 3 Day Sprint Data arranged by RCS number.  
 
 ### Directory Explanations
 
