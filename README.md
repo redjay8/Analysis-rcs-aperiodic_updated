@@ -2,6 +2,7 @@
 
 ## Important: File and Data Structure
 This project follows a specific directory structure to keep code and data organized. Below is an overview of this structure:  
+
 Umbrella/  
 ├── Code/  
 │   └── ... (your scripts and code files)  
