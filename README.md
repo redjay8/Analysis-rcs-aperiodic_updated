@@ -42,131 +42,100 @@ All scripts were ran on the curated RCS 3 Day Sprint Data arranged by RCS number
 # Pipeline Architecture
 ## Step 1: Data Ingestion and Preprocessing (Step1_github.m)
 Purpose: Consolidates raw RC+S neural recordings across multiple sessions into a unified data structure.  
-Key Operations:  
 
+### Key Operations:  
 Implements ProcessRCS toolbox for JSON data parsing  
 Handles variable sampling rates with robust type conversion  
 Generates combined data tables with aligned timestamps  
 Creates quality control visualizations for each recording session  
 
-Output: Master .mat file containing all neural time series data with metadata  
+### Output: 
+Master .mat file containing all neural time series data with metadata  
 
 ## Step 2: Signal Processing and Temporal Alignment (Step2_github.m)  
 Purpose: Performs temporal segmentation and spectral analysis while aligning neural data with behavioral measurements.  
-Key Features:  
 
-Signal Conditioning:  
-
+### Key Features:  
+### Signal Conditioning:  
 4th-order Butterworth high-pass filter (1 Hz cutoff) to remove DC drift  
 Preserves pathological low-frequency oscillations (4-30 Hz)  
 Processes only continuous segments >5 seconds for filter stability  
 
-Temporal Alignment:  
-
+### Temporal Alignment:  
 Centers 120-second neural windows on 30-second interpolated PKG timepoints  
 Achieves 0.5 Hz spectral resolution with 2-second Welch windows  
 Minimizes temporal mismatch between neural and behavioral data  
 
-Spectral Analysis:  
-
+### Spectral Analysis:  
 Welch's method with Hanning windows (50% overlap)  
 Parallel processing across channels for efficiency  
 Outputs full spectral arrays for subsequent FOOOF decomposition  
 
-Output: Aligned PSD segments with PKG scores in CSV format  
+### Output: 
+Aligned PSD segments with PKG scores in CSV format  
 
 ## Step 3: Spectral Decomposition and Feature Extraction (step3_github.ipynb)  
 Purpose: Separates aperiodic and oscillatory components of neural power spectra and extracts clinically relevant features.  
-Core Algorithms:
 
-FOOOF Analysis:
-
+### Core Algorithms:
+### FOOOF Analysis:
 Tests both 'fixed' (1/f) and 'knee' models across multiple frequency ranges
 Extracts aperiodic parameters: offset, exponent, and knee (when applicable)
 Identifies oscillatory "humps" above the aperiodic background
 Selects best model based on R² criteria
 
-
-Clinical State Assignment:
-
-Point-by-point classification based on PKG thresholds:
-
+### Clinical State Assignment:
+### Point-by-point classification based on PKG thresholds:
 Sleep: BK ≥ 80
 Immobile: 26 < BK < 80 AND DK < 7
 Mobile states: BK ≤ 26 OR DK ≥ 7 (subdivided by DK percentiles)
 
-
 No temporal windowing to avoid state smoothing artifacts
 
-
-Band-Specific Power Analysis:
-
+### Band-Specific Power Analysis:
 Identifies channel-specific dominant frequencies in beta (13-30 Hz) and gamma (60-90 Hz) bands
 Uses flattened spectra (aperiodic-removed) for robust peak detection
 Extracts power at dominant frequencies from original spectra
 
+### Output: 
+Master CSV with all spectral features, clinical states, and metadata  
 
-
-Output: Master CSV with all spectral features, clinical states, and metadata
-Step 4: Statistical Analysis and Visualization (step4_github_fix.ipynb)
+## Step 4: Statistical Analysis and Visualization (step4_github_fix.ipynb)
 Purpose: Comprehensive within-subject statistical analysis to evaluate relationships between neural biomarkers and motor symptoms.
-Analysis Framework:
 
-Correlation Analyses:
-
+### Analysis Framework:
+### Correlation Analyses:
 Spearman correlations between neural features and PKG scores
 Partial correlations controlling for oscillatory confounds
 FDR correction across all tests to control false discovery rate
 
-
-Predictive Modeling:
-
+### Predictive Modeling:
 Multiple linear regression with tiered model comparison
 Likelihood ratio tests for model selection
 Separate analyses for global and state-specific relationships
 
-
-Visualization Suite:
-
+### Visualization Suite:
 Dot-and-whisker plots for regression coefficients with 95% CIs
 Orthogonal variance explained (ΔR²) visualizations
 State-stratified scatter plots with bootstrapped median CIs
 
+## Requirements
+### Software Dependencies  
+MATLAB R2020a or later  
+Python 3.8+ with the following packages:  
 
+fooof (v1.0.0+)  
+pandas, numpy, scipy  
+statsmodels, pingouin  
+matplotlib, seaborn  
+scikit-posthocs  
 
-Output: Statistical results tables and publication-ready figures
-Requirements
-Software Dependencies
+### Data Requirements  
+RC+S neural recordings in JSON format  
+PKG accelerometry CSV files with BK, DK, and tremor scores  
+Minimum 120 seconds of continuous neural data per segment  
 
-MATLAB R2020a or later
-Python 3.8+ with the following packages:
-
-fooof (v1.0.0+)
-pandas, numpy, scipy
-statsmodels, pingouin
-matplotlib, seaborn
-scikit-posthocs
-
-
-
-Data Requirements
-
-RC+S neural recordings in JSON format
-PKG accelerometry CSV files with BK, DK, and tremor scores
-Minimum 120 seconds of continuous neural data per segment
-
-Usage
-
-Configure paths in each script header to point to your data directories
-Run scripts sequentially:
-bashmatlab -batch "run('Step1_github.m')"
-matlab -batch "run('Step2_github.m')"
-jupyter notebook step3_github.ipynb
-jupyter notebook step4_github_fix.ipynb
-
-Review outputs in the generated Working/ directory structure
-
-Output Structure
+### Output Structure
 Working/
 ├── step1_processed_data_multi_session/
 ├── step2_preprocessed_data_120s_neural_aligned_*/
