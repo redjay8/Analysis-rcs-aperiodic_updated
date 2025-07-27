@@ -58,17 +58,17 @@ All scripts were ran on the curated RCS 3 Day Sprint Data arranged by RCS number
 **Purpose**: Performs temporal segmentation and spectral analysis while aligning neural data with behavioral measurements.
 
 **Key Features**:
-- **Signal Conditioning**: 
+**Signal Conditioning**: 
  - 4th-order Butterworth high-pass filter (1 Hz cutoff) to remove DC drift
  - Preserves pathological low-frequency oscillations (4-30 Hz)
  - Processes only continuous segments >5 seconds for filter stability
 
-- **Temporal Alignment**:
+**Temporal Alignment**:
  - Centers 120-second neural windows on 30-second interpolated PKG timepoints
  - Achieves 0.5 Hz spectral resolution with 2-second Welch windows
  - Minimizes temporal mismatch between neural and behavioral data
 
-- **Spectral Analysis**:
+**Spectral Analysis**:
  - Welch's method with Hanning windows (50% overlap)
  - Parallel processing across channels for efficiency
  - Outputs full spectral arrays for subsequent FOOOF decomposition
@@ -81,20 +81,20 @@ Purpose: Separates aperiodic and oscillatory components of neural power spectra 
 **Purpose**: Separates aperiodic and oscillatory components of neural power spectra and extracts clinically relevant features.
 
 **Core Algorithms**:
-- **FOOOF Analysis**: 
+**FOOOF Analysis**: 
 - Tests both 'fixed' (1/f) and 'knee' models across multiple frequency ranges (10-40Hz, 30-90Hz, 10-90Hz)
 - Extracts aperiodic parameters: offset, exponent, and knee (when applicable)
 - Identifies oscillatory "humps" above the aperiodic background
 - Selects best model based on R² criteria and neurophysiological probable oscillatory hump widths
 
-- **Clinical State Assignment**:
- - Point-by-point classification based on PKG thresholds:
+**Clinical State Assignment**:
+- Point-by-point classification based on PKG thresholds:
    - Sleep: BK ≥ 80
    - Immobile: 26 < BK < 80 AND DK < 7
    - Mobile states: BK ≤ 26 OR DK ≥ 7 (subdivided by DK percentiles)
- - No temporal windowing to avoid state smoothing artifacts
+- No temporal windowing to avoid state smoothing artifacts
 
-- **Band-Specific Power Analysis**:
+**Band-Specific Power Analysis**:
  - Identifies channel-specific dominant frequencies in beta (13-30 Hz) and gamma (60-90 Hz) bands
  - Uses flattened spectra (aperiodic-removed) for robust peak detection
  - Extracts power at dominant frequencies from original spectra
@@ -106,12 +106,12 @@ Purpose: Separates aperiodic and oscillatory components of neural power spectra 
 **Purpose**: Comprehensive within-subject statistical analysis to evaluate relationships between neural biomarkers and motor symptoms.
 
 **Analysis Framework**:
-- **Correlation Analyses**:
+**Correlation Analyses**:
  - Spearman correlations between neural features and PKG scores
  - Partial correlations controlling for oscillatory confounds
  - FDR correction across all tests to control false discovery rate
 
-- **Predictive Modeling**:
+**Predictive Modeling**:
  - Multiple linear regression with tiered model comparison
  - Likelihood ratio tests for model selection
  - Separate analyses for global and state-specific relationships
