@@ -149,7 +149,7 @@ Guidance can be drawn from the existing `step4.ipynb` notebook and prior present
 
 ### Further Steps  
 
-Further characterization of the exponent and whether the offset provides predictive value in the same direction, particularly examining orthogonal predictive power within predefined states  
+Further characterization of the exponent and whether the offset provides predictive value in the same direction, particularly examining orthogonal predictive power within predefined states.  
 
 Exploratory analysis of the stimulation-on states, extending beyond the current 72h of naturalistic recordings in each patient. How does stimulation affect the aperiodic exponent?
 
