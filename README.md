@@ -110,14 +110,14 @@ Bivariate correlations explore direct relationships.
 Partial correlations are employed to explore any orthogonal relationship between an aperiodic feature and a PKG score while controlling for the influence of oscillatory power (Beta, Gamma). This is important as aperiodic and oscillatory activities can co-vary.
 
 #### Predictive Modeling:
-Utilizes multiple linear regression (MLR), primarily focusing on the "WideFreq" band for aperiodic parameters.
+Utilizes Linear Mixed Effect models (LME), primarily focusing on the "WideFreq" band for aperiodic parameters.
 We build tiered models to predict PKG symptom scores using:
             Aperiodic features (Exponent or Offset) alone.
             Oscillatory features (Beta and Gamma power) alone.
             A combination of aperiodic and oscillatory features. This approach helps to determine the independent and combined predictive utility of different neural signal components.
 
 #### Data Export:
-We prepare and saves a final, consolidated data table containing selected raw and derived metrics per time window, channel, and frequency band. This table is formatted for subsequent cross-subject analyses.
+Saves a final, consolidated data table containing selected raw and derived metrics per time window, channel, and frequency band. This table is formatted for subsequent cross-subject analyses.
 
 
 ## Suggested Mini-Project: Exploring Aperiodic Features Across Movement States
