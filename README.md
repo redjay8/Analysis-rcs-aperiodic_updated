@@ -39,83 +39,82 @@ All scripts were ran on the curated RCS 3 Day Sprint Data arranged by RCS number
 3.  **Run Code**: Navigate to the `Umbrella/Code/` directory to execute any scripts. Ensure your scripts are written to find data in the `../Data/RCSXX/` relative path or can be configured to find the data.
 
 
-# Pipeline Architecture
-## Step 1: Data Ingestion and Preprocessing (Step1_github.m)
-Purpose: Consolidates raw RC+S neural recordings across multiple sessions into a unified data structure.  
+## Pipeline Architecture
 
-### Key Operations:  
-Implements ProcessRCS toolbox for JSON data parsing  
-Handles variable sampling rates with robust type conversion  
-Generates combined data tables with aligned timestamps  
-Creates quality control visualizations for each recording session  
+### Step 1: Data Ingestion and Preprocessing (`Step1_github.m`)
 
-### Output: 
-Master .mat file containing all neural time series data with metadata  
+**Purpose**: Consolidates raw RC+S neural recordings across multiple sessions into a unified data structure.
 
-## Step 2: Signal Processing and Temporal Alignment (Step2_github.m)  
-Purpose: Performs temporal segmentation and spectral analysis while aligning neural data with behavioral measurements.  
+**Key Operations**:
+- Implements ProcessRCS toolbox for JSON data parsing
+- Handles variable sampling rates with robust type conversion
+- Generates combined data tables with aligned timestamps
+- Creates quality control visualizations for each recording session
 
-### Key Features:  
-### Signal Conditioning:  
-4th-order Butterworth high-pass filter (1 Hz cutoff) to remove DC drift  
-Preserves pathological low-frequency oscillations (4-30 Hz)  
-Processes only continuous segments >5 seconds for filter stability  
+**Output**: Master `.mat` file containing all neural time series data with metadata
 
-### Temporal Alignment:  
-Centers 120-second neural windows on 30-second interpolated PKG timepoints  
-Achieves 0.5 Hz spectral resolution with 2-second Welch windows  
-Minimizes temporal mismatch between neural and behavioral data  
+### Step 2: Signal Processing and Temporal Alignment (`Step2_github.m`)
 
-### Spectral Analysis:  
-Welch's method with Hanning windows (50% overlap)  
-Parallel processing across channels for efficiency  
-Outputs full spectral arrays for subsequent FOOOF decomposition  
+**Purpose**: Performs temporal segmentation and spectral analysis while aligning neural data with behavioral measurements.
 
-### Output: 
-Aligned PSD segments with PKG scores in CSV format  
+**Key Features**:
+- **Signal Conditioning**: 
+ - 4th-order Butterworth high-pass filter (1 Hz cutoff) to remove DC drift
+ - Preserves pathological low-frequency oscillations (4-30 Hz)
+ - Processes only continuous segments >5 seconds for filter stability
 
-## Step 3: Spectral Decomposition and Feature Extraction (step3_github.ipynb)  
+- **Temporal Alignment**:
+ - Centers 120-second neural windows on 30-second interpolated PKG timepoints
+ - Achieves 0.5 Hz spectral resolution with 2-second Welch windows
+ - Minimizes temporal mismatch between neural and behavioral data
+
+- **Spectral Analysis**:
+ - Welch's method with Hanning windows (50% overlap)
+ - Parallel processing across channels for efficiency
+ - Outputs full spectral arrays for subsequent FOOOF decomposition
+
+**Output**: Aligned PSD segments with PKG scores in CSV format
+
+### Step 3: Spectral Decomposition and Feature Extraction (`step3_github.ipynb`)
 Purpose: Separates aperiodic and oscillatory components of neural power spectra and extracts clinically relevant features.  
 
-### Core Algorithms:
-### FOOOF Analysis:
-Core of the analysis involves using the FOOOF (Fitting Oscillations & One Over F) algorithm. For each individual PSD segment, FOOOF is applied across multiple predefined frequency ranges (e.g., 10-40Hz, 30-90Hz, 10-90Hz) using two aperiodic settings: 'fixed' (1/f) and 'knee' (1/f with a knee parameter). This separates the aperiodic (1/f-like) background activity from true periodic oscillations (peaks). Key aperiodic parameters (offset, exponent, and knee if applicable), along with goodness-of-fit metrics (R-squared, error) and peak parameters, are extracted for each fit.  
-The script identifies "oscillatory humps"—broad regions of power rising above the fitted aperiodic component—and characterizes their frequency range, width, and maximum power.
+**Purpose**: Separates aperiodic and oscillatory components of neural power spectra and extracts clinically relevant features.
 
-### Clinical State Assignment:
-### Point-by-point classification based on PKG thresholds:  
-Sleep: BK ≥ 80  
-Immobile: 26 < BK < 80 AND DK < 7  
-Mobile states: BK ≤ 26 OR DK ≥ 7 (subdivided by DK percentiles)  
+**Core Algorithms**:
+- **FOOOF Analysis**: 
+- Tests both 'fixed' (1/f) and 'knee' models across multiple frequency ranges (10-40Hz, 30-90Hz, 10-90Hz)
+- Extracts aperiodic parameters: offset, exponent, and knee (when applicable)
+- Identifies oscillatory "humps" above the aperiodic background
+- Selects best model based on R² criteria and neurophysiological probable oscillatory hump widths
 
-No temporal windowing to avoid state smoothing artifacts  
- 
-### Band-Specific Power Analysis:
-Identifies channel-specific dominant frequencies in beta (13-30 Hz) and gamma (60-90 Hz) bands  
-Uses flattened spectra (aperiodic-removed) for robust peak detection  
-Extracts power at dominant frequencies from original spectra  
+- **Clinical State Assignment**:
+ - Point-by-point classification based on PKG thresholds:
+   - Sleep: BK ≥ 80
+   - Immobile: 26 < BK < 80 AND DK < 7
+   - Mobile states: BK ≤ 26 OR DK ≥ 7 (subdivided by DK percentiles)
+ - No temporal windowing to avoid state smoothing artifacts
 
-### Output: 
-Master CSV with all spectral features, clinical states, and metadata  
+- **Band-Specific Power Analysis**:
+ - Identifies channel-specific dominant frequencies in beta (13-30 Hz) and gamma (60-90 Hz) bands
+ - Uses flattened spectra (aperiodic-removed) for robust peak detection
+ - Extracts power at dominant frequencies from original spectra
 
-## Step 4: Statistical Analysis and Visualization (step4_github_fix.ipynb)
-Purpose: Comprehensive within-subject statistical analysis to evaluate relationships between neural biomarkers and motor symptoms.
+**Output**: Master CSV with all spectral features, clinical states, and metadata
 
-### Analysis Framework:
-### Correlation Analyses:
-Spearman correlations between neural features and PKG scores  
-Partial correlations controlling for oscillatory confounds  
-FDR correction across all tests to control false discovery rate  
+### Step 4: Statistical Analysis and Visualization (`step4_github_fix.ipynb`)
 
-### Predictive Modeling:
-Multiple linear regression with tiered model comparison  
-Likelihood ratio tests for model selection  
-Separate analyses for global and state-specific relationships  
+**Purpose**: Comprehensive within-subject statistical analysis to evaluate relationships between neural biomarkers and motor symptoms.
 
-### Visualization Suite:
-Dot-and-whisker plots for regression coefficients with 95% CIs  
-Orthogonal variance explained (ΔR²) visualizations  
-State-stratified scatter plots with bootstrapped median CIs  
+**Analysis Framework**:
+- **Correlation Analyses**:
+ - Spearman correlations between neural features and PKG scores
+ - Partial correlations controlling for oscillatory confounds
+ - FDR correction across all tests to control false discovery rate
+
+- **Predictive Modeling**:
+ - Multiple linear regression with tiered model comparison
+ - Likelihood ratio tests for model selection
+ - Separate analyses for global and state-specific relationships
 
 ## Requirements
 ### Software Dependencies
