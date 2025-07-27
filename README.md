@@ -76,7 +76,6 @@ All scripts were ran on the curated RCS 3 Day Sprint Data arranged by RCS number
 **Output**: Aligned PSD segments with PKG scores in CSV format
 
 ### Step 3: Spectral Decomposition and Feature Extraction (`step3_github.ipynb`)
-Purpose: Separates aperiodic and oscillatory components of neural power spectra and extracts clinically relevant features.  
 
 **Purpose**: Separates aperiodic and oscillatory components of neural power spectra and extracts clinically relevant features.
 
