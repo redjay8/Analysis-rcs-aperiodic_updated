@@ -118,22 +118,22 @@ Orthogonal variance explained (ΔR²) visualizations
 State-stratified scatter plots with bootstrapped median CIs  
 
 ## Requirements
-### Software Dependencies  
-MATLAB R2020a or later   
-Python 3.8+ with the following packages:  
-
-fooof (v1.0.0+)  
-pandas, numpy, scipy  
-statsmodels, pingouin  
-matplotlib, seaborn  
-scikit-posthocs  
+### Software Dependencies
+- MATLAB R2020a or later  
+- Python 3.8+ with the following packages:  
+ - `fooof` (v1.0.0+)  
+ - `pandas`, `numpy`, `scipy`  
+ - `statsmodels`, `pingouin`  
+ - `matplotlib`, `seaborn`  
+ - `scikit-posthocs`  
 
 ### Data Requirements  
-RC+S neural recordings in JSON format  
-PKG accelerometry CSV files with BK, DK, and tremor scores  
-Minimum 120 seconds of continuous neural data per segment  
+- RC+S neural recordings in JSON format  
+- PKG accelerometry CSV files with BK, DK, and tremor scores  
+- Minimum 120 seconds of continuous neural data per segment  
 
 ### Output Structure
+ 
 Working/  
 ├── step1_processed_data_multi_session/  
 ├── step2_preprocessed_data_120s_neural_aligned_*/  
