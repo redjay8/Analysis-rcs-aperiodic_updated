@@ -79,23 +79,21 @@ Purpose: Separates aperiodic and oscillatory components of neural power spectra 
 
 ### Core Algorithms:
 ### FOOOF Analysis:
-Tests both 'fixed' (1/f) and 'knee' models across multiple frequency ranges
-Extracts aperiodic parameters: offset, exponent, and knee (when applicable)
-Identifies oscillatory "humps" above the aperiodic background
-Selects best model based on R² criteria
+Core of the analysis involves using the FOOOF (Fitting Oscillations & One Over F) algorithm. For each individual PSD segment, FOOOF is applied across multiple predefined frequency ranges (e.g., 10-40Hz, 30-90Hz, 10-90Hz) using two aperiodic settings: 'fixed' (1/f) and 'knee' (1/f with a knee parameter). This separates the aperiodic (1/f-like) background activity from true periodic oscillations (peaks). Key aperiodic parameters (offset, exponent, and knee if applicable), along with goodness-of-fit metrics (R-squared, error) and peak parameters, are extracted for each fit.  
+The script identifies "oscillatory humps"—broad regions of power rising above the fitted aperiodic component—and characterizes their frequency range, width, and maximum power.
 
 ### Clinical State Assignment:
-### Point-by-point classification based on PKG thresholds:
-Sleep: BK ≥ 80
-Immobile: 26 < BK < 80 AND DK < 7
-Mobile states: BK ≤ 26 OR DK ≥ 7 (subdivided by DK percentiles)
+### Point-by-point classification based on PKG thresholds:  
+Sleep: BK ≥ 80  
+Immobile: 26 < BK < 80 AND DK < 7  
+Mobile states: BK ≤ 26 OR DK ≥ 7 (subdivided by DK percentiles)  
 
-No temporal windowing to avoid state smoothing artifacts
-
+No temporal windowing to avoid state smoothing artifacts  
+ 
 ### Band-Specific Power Analysis:
-Identifies channel-specific dominant frequencies in beta (13-30 Hz) and gamma (60-90 Hz) bands
-Uses flattened spectra (aperiodic-removed) for robust peak detection
-Extracts power at dominant frequencies from original spectra
+Identifies channel-specific dominant frequencies in beta (13-30 Hz) and gamma (60-90 Hz) bands  
+Uses flattened spectra (aperiodic-removed) for robust peak detection  
+Extracts power at dominant frequencies from original spectra  
 
 ### Output: 
 Master CSV with all spectral features, clinical states, and metadata  
@@ -105,23 +103,23 @@ Purpose: Comprehensive within-subject statistical analysis to evaluate relations
 
 ### Analysis Framework:
 ### Correlation Analyses:
-Spearman correlations between neural features and PKG scores
-Partial correlations controlling for oscillatory confounds
-FDR correction across all tests to control false discovery rate
+Spearman correlations between neural features and PKG scores  
+Partial correlations controlling for oscillatory confounds  
+FDR correction across all tests to control false discovery rate  
 
 ### Predictive Modeling:
-Multiple linear regression with tiered model comparison
-Likelihood ratio tests for model selection
-Separate analyses for global and state-specific relationships
+Multiple linear regression with tiered model comparison  
+Likelihood ratio tests for model selection  
+Separate analyses for global and state-specific relationships  
 
 ### Visualization Suite:
-Dot-and-whisker plots for regression coefficients with 95% CIs
-Orthogonal variance explained (ΔR²) visualizations
-State-stratified scatter plots with bootstrapped median CIs
+Dot-and-whisker plots for regression coefficients with 95% CIs  
+Orthogonal variance explained (ΔR²) visualizations  
+State-stratified scatter plots with bootstrapped median CIs  
 
 ## Requirements
 ### Software Dependencies  
-MATLAB R2020a or later  
+MATLAB R2020a or later   
 Python 3.8+ with the following packages:  
 
 fooof (v1.0.0+)  
@@ -136,14 +134,14 @@ PKG accelerometry CSV files with BK, DK, and tremor scores
 Minimum 120 seconds of continuous neural data per segment  
 
 ### Output Structure
-Working/
-├── step1_processed_data_multi_session/
-├── step2_preprocessed_data_120s_neural_aligned_*/
-├── step3_fooof_results_neural_pkg_aligned/
-└── step4_within_subject/
-    ├── Correlation_CSVs/
-    ├── MultipleLinearRegression_Results/
-    └── Visualization_Plots/
+Working/  
+├── step1_processed_data_multi_session/  
+├── step2_preprocessed_data_120s_neural_aligned_*/  
+├── step3_fooof_results_neural_pkg_aligned/  
+└── step4_within_subject/  
+    ├── Correlation_CSVs/  
+    ├── MultipleLinearRegression_Results/  
+    └── Visualization_Plots/  
 
 
 ## Suggested Mini-Project: Exploring Aperiodic Features Across Movement States
