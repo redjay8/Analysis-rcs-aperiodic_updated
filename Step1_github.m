@@ -21,7 +21,7 @@ addpath(genpath(toolbox_path))
 
 %main_data_root = fullfile(base_path, 'RCS02 3 day sprint (05152019-05292019)/SCBS (Session1557950618572-1559185447897)');
 main_data_root = '/home/jackson';
-output_path = fullfile(base_path, 'jackson/step1_processed_data_multi_session_final_t2');
+output_path = fullfile(base_path, 'jackson/step1_processed_data_multi_session_final_newnaming_tester');
 if ~exist(output_path, 'dir')
     mkdir(output_path);
     fprintf('Created output directory: %s\n', output_path);
@@ -123,7 +123,9 @@ for i_sess = 1:length(session_folders)
             combinedDataTable_sess = createCombinedTable(dataStreams_sess, unifiedDerivedTimes_sess, metaData_sess, electrode_info_sess);
             % === DEBUG: Check for all-NaN signal rows ===
             
-            contactCols = contains(combinedDataTable_sess.Properties.VariableNames, 'Contact_');
+            %contactCols = contains(combinedDataTable_sess.Properties.VariableNames, 'Contact_');
+            contactCols = ~cellfun('isempty', regexp(combinedDataTable_sess.Properties.VariableNames, '^key\d+_contact_\d+_\d+$'));
+
             accelCols = contains(combinedDataTable_sess.Properties.VariableNames, 'Accel_');
             signalCols = contactCols | accelCols;
             
@@ -356,7 +358,7 @@ end
 fprintf('Rebuilding master MAT file from individual sessions...\n');
 
 % --- Configuration ---
-output_path = '/home/jackson/step1_processed_data_multi_session_final_t2'; % Update as needed
+output_path = '/home/jackson/step1_processed_data_multi_session_final_newnaming_tester';
 target_patient_folder = 'RCS02R';
 target_hemisphere = 'Right';
 
@@ -380,105 +382,114 @@ for i = 1:length(mat_files)
     try
         S = load(mat_path);
     catch ME
-        warning('⚠️ Failed to load %s: %s', mat_path, ME.message);
-        continue;  % Skip to the next file
+        error('Failed to load %s: %s', mat_path, ME.message);
     end
 
     if ~isfield(S, 'combinedDataTable_sess') || isempty(S.combinedDataTable_sess)
-        warning('  ❌ No combinedDataTable_sess found in %s. Skipping.', mat_files(i).name);
-        continue;
+        error('No combinedDataTable_sess found in %s. Skipping.', mat_files(i).name);
     end
+
+    % --- Debugging Step: Validate Time Domain Data ---
+    td_fieldnames = {'timeDomainData', 'timeDomainDataOriginal', 'timeDomainData_sess'};
+    td_data = [];
+    for j = 1:length(td_fieldnames)
+        if isfield(S, td_fieldnames{j})
+            td_data = S.(td_fieldnames{j});
+            break;
+        end
+    end
+
+    if isempty(td_data)
+        error('Missing time domain data in %s. Skipping.', mat_files(i).name);
+    end
+
+    % --- Check for Contact and Key Columns ---
+    Tnew = S.combinedDataTable_sess;
     
-    % Align columns if necessary (as in your script)
-    if isempty(combinedDataTable_AllSessions)
-        combinedDataTable_AllSessions = S.combinedDataTable_sess;
+    % Find columns that match new 'keyX_contact_Y_Z' pattern
+    contact_pattern = '^key\d+_contact_\d+_\d+$';
+    contact_cols = find(~cellfun(@isempty, regexp(Tnew.Properties.VariableNames, contact_pattern, 'once')));
+    
+    % Key columns in TD data (should still start with 'key')
+    key_cols = find(startsWith(td_data.Properties.VariableNames, 'key'));
+
+
+    if isempty(contact_cols) || isempty(key_cols)
+        error('Missing Contact_ or key columns in %s', mat_files(i).name);
+    end
+
+    % --- Check for Common Time Columns ---
+    tnew_time = [];
+    told_time = [];
+    if ismember('DerivedTime', Tnew.Properties.VariableNames)
+        tnew_time = Tnew.DerivedTime;
+    elseif ismember('localTime', Tnew.Properties.VariableNames)
+        tnew_time = Tnew.localTime;
+    end
+    if ismember('DerivedTime', td_data.Properties.VariableNames)
+        told_time = td_data.DerivedTime;
+    elseif ismember('localTime', td_data.Properties.VariableNames)
+        told_time = td_data.localTime;
+    end
+
+    if isempty(tnew_time) || isempty(told_time)
+        error('Missing valid time columns in %s, skipping.', mat_files(i).name);
+    end
+
+    % --- Align Timestamps ---
+    [common_time, idx_new, idx_old] = intersect(tnew_time, told_time);
+    if isempty(common_time)
+        error('No overlapping timestamps in %s.', mat_files(i).name);
+    end
+
+    % --- Debug: Check Matched Contacts and Keys ---
+    arr_contacts = table2array(Tnew(idx_new, contact_cols));
+    arr_keys = table2array(td_data(idx_old, key_cols));
+
+    arr_contacts(:, all(isnan(arr_contacts), 1)) = [];
+    arr_keys(:, all(isnan(arr_keys), 1)) = [];
+
+    % --- Perform Matching ---
+    matched_contacts = false(1, size(arr_contacts, 2));
+    matched_keys = false(1, size(arr_keys, 2));
+    matched_pairs = zeros(size(arr_contacts, 2), 1);
+
+    for c = 1:size(arr_contacts, 2)
+        for k = 1:size(arr_keys, 2)
+            if matched_keys(k), continue, end
+            v_contact = arr_contacts(:, c);
+            v_key = arr_keys(:, k);
+            valid_idx = ~isnan(v_contact) & ~isnan(v_key);
+            if ~any(valid_idx), continue, end
+            if isequaln(v_contact(valid_idx), v_key(valid_idx))
+                matched_contacts(c) = true;
+                matched_keys(k) = true;
+                matched_pairs(c) = k;
+                fprintf('✔️ Matched Contact_%d <-> key%d\n', c, k-1);
+                break
+            end
+        end
+        if ~matched_contacts(c)
+            error('❌ No match for Contact_%d in %s', c, mat_files(i).name);
+        end
+    end
+
+    unmatched_keys = find(~matched_keys);
+    for k = unmatched_keys
+        error('❌ No match for key%d in %s', k-1, mat_files(i).name);
+    end
+
+    % Report global result
+    if all(matched_contacts) && all(matched_keys)
+        fprintf('✔️ All Contact_ and keyN columns match for %s\n', mat_files(i).name);
     else
-        % Add missing columns
-        new_cols = setdiff(S.combinedDataTable_sess.Properties.VariableNames, combinedDataTable_AllSessions.Properties.VariableNames);
-        for c = 1:length(new_cols)
-            col_name = new_cols{c};
-            nRows = height(combinedDataTable_AllSessions);
-            exampleData = S.combinedDataTable_sess.(col_name);
-            if isnumeric(exampleData)
-                combinedDataTable_AllSessions.(col_name) = NaN(nRows, 1);
-            elseif iscell(exampleData)
-                combinedDataTable_AllSessions.(col_name) = cell(nRows, 1);
-            elseif isdatetime(exampleData)
-                combinedDataTable_AllSessions.(col_name) = NaT(nRows, 1);
-            else
-                combinedDataTable_AllSessions.(col_name) = strings(nRows, 1);  % fallback for char/string
-            end
-        end
-        
-        missing_cols = setdiff(combinedDataTable_AllSessions.Properties.VariableNames, S.combinedDataTable_sess.Properties.VariableNames);
-        for c = 1:length(missing_cols)
-            col_name = missing_cols{c};
-            nRows = height(S.combinedDataTable_sess);
-            exampleData = combinedDataTable_AllSessions.(col_name);
-            if isnumeric(exampleData)
-                S.combinedDataTable_sess.(col_name) = NaN(nRows, 1);
-            elseif iscell(exampleData)
-                S.combinedDataTable_sess.(col_name) = cell(nRows, 1);
-            elseif isdatetime(exampleData)
-                S.combinedDataTable_sess.(col_name) = NaT(nRows, 1);
-            else
-                S.combinedDataTable_sess.(col_name) = strings(nRows, 1);
-            end
-        end
-
-        % Ensure column order matches
-        S.combinedDataTable_sess = S.combinedDataTable_sess(:, combinedDataTable_AllSessions.Properties.VariableNames);
-        combinedDataTable_AllSessions = [combinedDataTable_AllSessions; S.combinedDataTable_sess];
-    end
-    
-    if isfield(S, 'metaData_sess')
-        all_metaData_Master{end+1} = S.metaData_sess;
-    end
-    if isfield(S, 'electrode_info_sess')
-        electrode_info_AllSessions{i} = S.electrode_info_sess;
-    end
-
-    % Extract session name from filename
-    match = regexp(mat_files(i).name, 'Step1_SessData_.*?_(session\d+)\.mat', 'tokens');
-    sessionFolderName = '';
-    if ~isempty(match), sessionFolderName = match{1}{1}; end
-    
-    new_row = {string(target_patient_folder), string(sessionFolderName), string(mat_path)};
-    successfully_processed_sessions_details = [successfully_processed_sessions_details; new_row];
-end
-
-% Sort by time
-if ismember('localTime', combinedDataTable_AllSessions.Properties.VariableNames)
-    combinedDataTable_AllSessions = sortrows(combinedDataTable_AllSessions, 'localTime');
-end
-
-% Extract first valid electrode info
-electrode_info_Master = struct();
-for i = 1:length(electrode_info_AllSessions)
-    sess_info = electrode_info_AllSessions{i};
-    if isempty(sess_info), continue; end
-
-    td_keys = fieldnames(sess_info);
-    for k = 1:length(td_keys)
-        td_key = td_keys{k};
-        entry = sess_info.(td_key);
-        contact = entry.contacts;
-
-        if strcmpi(contact, 'Disabled') || strcmpi(contact, 'Unknown')
-            continue;
-        end
-
-        contact_label = matlab.lang.makeValidName(sprintf('Contact_%s', strrep(contact, '-', '_')));
-
-        % Prefer first instance if duplicates
-        if ~isfield(electrode_info_Master, contact_label)
-            electrode_info_Master.(contact_label) = rmfield(entry, 'key_idx'); % clean if needed
-        end
+        error('Partial match: some channels matched, some did not for %s\n', mat_files(i).name);
     end
 end
 
-% Save repaired master .mat
-master_mat_filename = sprintf('Step1_MasterData_%s_%s_AllSessions_t2.mat', target_patient_folder, target_hemisphere);
+% Rebuild master MAT file (same as before)
+% Save the master .mat and report final result
+master_mat_filename = sprintf('Step1_MasterData_%s_%s_AllSessions.mat', target_patient_folder, target_hemisphere);
 master_mat_filepath = fullfile(output_path, master_mat_filename);
 save(master_mat_filepath, ...
     'combinedDataTable_AllSessions', 'electrode_info_Master', 'all_metaData_Master', ...
@@ -487,8 +498,6 @@ save(master_mat_filepath, ...
     'output_path', 'electrode_info_AllSessions', ...
     '-v7.3');
 fprintf('✅ Rebuilt master MAT file saved to:\n%s\n', master_mat_filepath);
-
-
 
 %% Helper Function: yesNoSymbol 
 function symbol = yesNoSymbol(condition)
@@ -509,7 +518,10 @@ function [combinedDataTable] = createCombinedTable(dataStreams, unifiedDerivedTi
             if ~isfield(electrode_info, chan_name), continue; end
             contact_label = electrode_info.(chan_name).contacts;
             if strcmpi(contact_label, 'Disabled') || strcmpi(contact_label, 'Unknown'), continue; end
-            contact_varname = matlab.lang.makeValidName(sprintf('Contact_%s', strrep(contact_label, '-', '_')));
+            %contact_varname = matlab.lang.makeValidName(sprintf('Contact_%s', strrep(contact_label, '-', '_')));
+            contact_varname = matlab.lang.makeValidName(sprintf('%s_contact_%s', keyName, strrep(contact_label, '-', '_')));
+
+
             if ismember(keyName, tdData.Properties.VariableNames)
                 [~, ia, ib] = intersect(unifiedDerivedTimes, tdData.DerivedTime, 'stable');
                 padded_signal = NaN(numRows, 1);
