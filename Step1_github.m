@@ -485,6 +485,26 @@ for i = 1:length(mat_files)
     else
         error('Partial match: some channels matched, some did not for %s\n', mat_files(i).name);
     end
+
+    if isempty(combinedDataTable_AllSessions)
+        combinedDataTable_AllSessions = S.combinedDataTable_sess;
+    else
+        % Ensure the same column order:
+        new_cols = setdiff(S.combinedDataTable_sess.Properties.VariableNames, combinedDataTable_AllSessions.Properties.VariableNames);
+        for c = 1:length(new_cols)
+            col = new_cols{c};
+            combinedDataTable_AllSessions.(col) = NaN(height(combinedDataTable_AllSessions), size(S.combinedDataTable_sess.(col),2));
+        end
+        missing_cols = setdiff(combinedDataTable_AllSessions.Properties.VariableNames, S.combinedDataTable_sess.Properties.VariableNames);
+        for c = 1:length(missing_cols)
+            col = missing_cols{c};
+            S.combinedDataTable_sess.(col) = NaN(height(S.combinedDataTable_sess), size(combinedDataTable_AllSessions.(col),2));
+        end
+        % Now align column order
+        S.combinedDataTable_sess = S.combinedDataTable_sess(:, combinedDataTable_AllSessions.Properties.VariableNames);
+        combinedDataTable_AllSessions = [combinedDataTable_AllSessions; S.combinedDataTable_sess];
+    end
+
 end
 
 % Rebuild master MAT file (same as before)
