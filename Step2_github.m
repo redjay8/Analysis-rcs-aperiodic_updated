@@ -15,38 +15,38 @@ clc;
 fprintf('Starting Step 2');
 
 script_run_folder = pwd;
-project_base_path = fullfile(script_run_folder, '..'); % Assumes script is run from a 'scripts' or similar folder
-
-% --- Input Step 1 Master Data ---
+%project_base_path = fullfile(script_run_folder, '..'); % Assumes script is run from a 'scripts' or similar folder
+project_base_path = '/home/jackson';
+% --- Input Step 1  Master Data ---
 % <<< ADJUST THE FOLLOWING PARAMETERS AS NEEDED >>>
-target_patient_folder_step1 = 'RCS20L'; % Patient identifier used in Step 1 master filename
-target_hemisphere_step1 = 'Left';   % Hemisphere identifier used in Step 1 master filename
+target_patient_folder_step1 = 'RCS02R'; % fPatient identifier used in Step 1 master filename
+target_hemisphere_step1 = 'Right';   % Hemisphere identifier used in Step 1 master filename
 % ---
-step1_master_mat_filename = sprintf('Step1_MasterData_%s_%s_AllSessions.mat', target_patient_folder_step1, target_hemisphere_step1);
-processed_data_folder_step1 = fullfile(project_base_path, 'step1_processed_data_multi_session'); % Folder where Step 1 master files are saved
+step1_master_mat_filename = sprintf('Step1_MasterData_RCS02R_Right_AllSessions.mat', target_patient_folder_step1, target_hemisphere_step1);
+processed_data_folder_step1 = fullfile(project_base_path, 'step1_processed_data_multi_session_final_newnaming_tester'); % Folder where Step 1 master files are saved
 load_file_path_step1_master = fullfile(processed_data_folder_step1, step1_master_mat_filename);
 
 if ~isfile(load_file_path_step1_master)
     error('Specified Step 1 Master MAT file not found: %s', load_file_path_step1_master);
 end
 
+
 % --- Toolbox Path ---
-toolbox_path = '/Users/robertho/Documents/MATLAB/Analysis-rcs-data-master';
+toolbox_path = '/home/jackson/Analysis-rcs-data'
 fprintf('Analysis-rcs-data toolbox found at: %s\n', toolbox_path);
 
 % --- Output Folder ---
-preprocessed_output_folder = fullfile(project_base_path, sprintf('step2_preprocessed_data_120s_neural_aligned_%s_%s_AllSessions', target_patient_folder_step1, target_hemisphere_step1));
+preprocessed_output_folder = fullfile(project_base_path, sprintf('step2_preprocessed_data_120s_neural_aligned_%s_%s_AllSessions_newnaming_tester', target_patient_folder_step1, target_hemisphere_step1));
 if ~isfolder(preprocessed_output_folder), mkdir(preprocessed_output_folder); end
 fprintf('Step 2 output will be saved to: %s\n', preprocessed_output_folder);
 
 % --- Neural Data Processing Parameters ---
-channels_to_process = {'TD_key0', 'TD_key1', 'TD_key2', 'TD_key3'}; % Channels from combinedDataTable
+%channels_to_process = {'TD_key0', 'TD_key1', 'TD_key2', 'TD_key3'}; % Channels from combinedDataTable
 % stim_blanking_window_ms = 10; % Duration around stim pulse to NaN out
-% use_stim_blanking = false; % IMPORTANT: Stim blanking on a master combined table is complex.
+use_stim_blanking = false; % IMPORTANT: Stim blanking on a master combined table is complex.
                          % Assuming false for now, or that it was handled prior to Step 1 combination.
                          % If true, stimLogSettings would need to be aggregated and applied carefully.
-fprintf('WARNING: Stimulation blanking (use_stim_blanking) is assumed to be FALSE when processing a master combined table.\n');
-use_stim_blanking = false; % This remains false, simplifying parallelization for now.
+% --- Automatically detect all channels of the form Contact_x_x ---
 
 % High-pass filter params - keeping this one since it's actually useful
 high_pass_cutoff = 1; % Hz, cutoff frequency for high-pass filter
@@ -55,7 +55,7 @@ apply_high_pass_filter = true; % Apply high-pass filter?
 min_continuous_chunk_for_filter_sec = 5.0; % Min duration of data without NaNs needed to apply filter
 
 % --- Segmentation and PSD Parameters ---
-target_neural_segment_duration_sec = 120.0; % Desired duration of each neural segment for PSD
+target_neural_segment_duration_sec = 30.0; % Desired duration of each neural segment for PSD
 pwelch_config.window_duration_sec = 2.0; % Increased for better low-freq resolution, e.g., 2.0s or 4.0s
 pwelch_config.overlap_percent = 50;
 pwelch_config.nfft_multiplier = 1; % NFFT = window length * nfft_multiplier
@@ -65,7 +65,7 @@ freq_ranges_for_fooof.WideFreq = [10, 90];
 
 % --- PKG Data Parameters ---
 pkg_interpolation_interval_sec = 30.0;
-pkg_base_data_folder = fullfile(project_base_path, 'Data', 'RCS 20 3 day sprint (09222022-09292022)', 'PKG'); % <<< ADJUST PATH AS NEEDED
+pkg_base_data_folder = fullfile('/home/jackson', 'PKG'); % <<< ADJUST PATH AS NEEDED
 default_pkg_filename_pattern = 'scores_*.csv';
 
 %% 2. Load Step1 Master Processed RC+S Data
@@ -81,6 +81,14 @@ end
 combinedDataTable = data_step1_master.combinedDataTable_AllSessions;
 electrode_info = data_step1_master.electrode_info_Master;
 all_metaData = data_step1_master.all_metaData_Master;
+
+
+all_variable_names = combinedDataTable.Properties.VariableNames;
+contact_channel_pattern = '^key\d+_contact_\d+_\d+$';
+channels_to_process = all_variable_names(~cellfun(@isempty, regexp(all_variable_names, contact_channel_pattern, 'once')));
+fprintf('Detected %d contact channels to process: %s\n', length(channels_to_process), strjoin(channels_to_process, ', '));
+
+
 patient_id_from_step1 = data_step1_master.target_patient_folder;
 neural_hemisphere = data_step1_master.target_hemisphere;
 
@@ -280,69 +288,70 @@ fprintf('Interpolated PKG data to %d points at %.1fs intervals.\n', height(pkg_t
 if isempty(pkg_table_interp_aligned_scores) || height(pkg_table_interp_aligned_scores)==0, warning('Interpolated PKG data is empty or has no rows. No segments will be generated.'); end
 
 
-%% 3.1 Visualize PKG Interpolation
-fprintf('\nVisualizing PKG interpolation...\n');
-if ~isempty(pkg_table_for_interp) && ~isempty(pkg_table_interp_aligned_scores) && height(pkg_table_for_interp) >= 2 && height(pkg_table_interp_aligned_scores) >=1
-    vis_pkg_output_folder = fullfile(preprocessed_output_folder, 'visualizations_pkg_interp');
-    if ~isfolder(vis_pkg_output_folder), mkdir(vis_pkg_output_folder); end
-    fprintf('Saving PKG interpolation visualizations to: %s\n', vis_pkg_output_folder);
-
-    for i_score = 1:length(valid_pkg_score_cols)
-        score_name = valid_pkg_score_cols{i_score};
-        aligned_score_name = ['Aligned_' score_name];
-
-        if ismember(score_name, pkg_table_for_interp.Properties.VariableNames) && ...
-           ismember(aligned_score_name, pkg_table_interp_aligned_scores.Properties.VariableNames)
-
-            fig_h = figure('Name', ['PKG Interpolation: ' score_name], 'Position', [100, 100, 900, 600], 'Visible', 'off');
-            ax = axes(fig_h);
-            hold(ax, 'on');
-
-            % Plot original PKG points
-            original_scores_numeric = double(pkg_table_for_interp.(score_name));
-            valid_orig_idx = ~isnan(original_scores_numeric) & ~isnan(pkg_table_for_interp.PKG_UnixTimestamp_orig);
-            if sum(valid_orig_idx) > 0
-                plot(ax, pkg_table_for_interp.PKG_UnixTimestamp_orig(valid_orig_idx), original_scores_numeric(valid_orig_idx), 'o-', 'DisplayName', 'Original PKG points', 'MarkerFaceColor', 'b');
-            end
-
-            % Plot interpolated points
-            interpolated_scores_numeric = double(pkg_table_interp_aligned_scores.(aligned_score_name));
-            valid_interp_idx = ~isnan(interpolated_scores_numeric) & ~isnan(pkg_table_interp_aligned_scores.Aligned_PKG_UnixTimestamp);
-            if sum(valid_interp_idx) > 0
-                plot(ax, pkg_table_interp_aligned_scores.Aligned_PKG_UnixTimestamp(valid_interp_idx), interpolated_scores_numeric(valid_interp_idx), '.-', 'DisplayName', ['Interpolated PKG (' num2str(pkg_interpolation_interval_sec) 's)'], 'Color', 'r', 'MarkerSize', 10);
-            end
-
-            hold(ax, 'off');
-            xlabel(ax, 'Unix Timestamp (seconds)');
-            ylabel(ax, strrep(score_name, '_', ' '));
-            title(ax, ['PKG Interpolation Check: ' strrep(score_name, '_', ' ') ' for ' patient_id_from_step1]);
-            legend(ax, 'show', 'Location', 'best');
-            grid(ax, 'on');
-            
-            % Pretty up the x-axis with actual dates
-            if sum(valid_orig_idx)>0 || sum(valid_interp_idx) >0
-                xlim_val = xlim(ax);
-                xticks_val = xticks(ax);
-                xticklabels_val = cellstr(datetime(xticks_val, 'ConvertFrom', 'posixtime', 'TimeZone',  sprintf('%+03d:00', UTCoffset_hours), 'Format', 'MM-dd HH:mm'));
-                set(ax, 'XTickLabel', xticklabels_val, 'XTickLabelRotation', 30);
-                xlabel(ax, sprintf('Time (Local, UTC%+d)', UTCoffset_hours));
-            end
-
-            try
-                saveas(fig_h, fullfile(vis_pkg_output_folder, sprintf('PKG_Interp_%s_%s_%s.png', patient_id_from_step1, neural_hemisphere, score_name)));
-                fprintf('  - Saved visualization for %s\n', score_name);
-            catch ME_save
-                 warning('Could not save PKG visualization for %s. Error: %s', score_name, ME_save.message);
-            end
-            close(fig_h);
-        else
-            fprintf('  - Skipping visualization for %s (column not found in original or interpolated table).\n', score_name);
-        end
-    end
-else
-    fprintf('  Skipping PKG interpolation visualization (insufficient data).\n');
-end
-
+% %% 3.1 Visualize PKG Interpolation
+% fprintf('\nVisualizing PKG interpolation...\n');
+% if ~isempty(pkg_table_for_interp) && ~isempty(pkg_table_interp_aligned_scores) && height(pkg_table_for_interp) >= 2 && height(pkg_table_interp_aligned_scores) >=1
+%     vis_pkg_output_folder = fullfile(preprocessed_output_folder, 'visualizations_pkg_interp');
+%     if ~isfolder(vis_pkg_output_folder), mkdir(vis_pkg_output_folder); end
+%     fprintf('Saving PKG interpolation visualizations to: %s\n', vis_pkg_output_folder);
+% 
+%     for i_score = 1:length(valid_pkg_score_cols)
+%         score_name = valid_pkg_score_cols{i_score};
+%         aligned_score_name = ['Aligned_' score_name];
+% 
+%         if ismember(score_name, pkg_table_for_interp.Properties.VariableNames) && ...
+%            ismember(aligned_score_name, pkg_table_interp_aligned_scores.Properties.VariableNames)
+% 
+%             fig_h = figure('Name', ['PKG Interpolation: ' score_name], 'Position', [100, 100, 900, 600], 'Visible', 'off');
+%             ax = axes(fig_h);
+%             hold(ax, 'on');
+% 
+%             % Plot original PKG points
+%             original_scores_numeric = double(pkg_table_for_interp.(score_name));
+%             valid_orig_idx = ~isnan(original_scores_numeric) & ~isnan(pkg_table_for_interp.PKG_UnixTimestamp_orig);
+%             if sum(valid_orig_idx) > 0
+%                 plot(ax, pkg_table_for_interp.PKG_UnixTimestamp_orig(valid_orig_idx), original_scores_numeric(valid_orig_idx), 'o-', 'DisplayName', 'Original PKG points', 'MarkerFaceColor', 'b');
+%             end
+% 
+%             % Plot interpolated points
+%             interpolated_scores_numeric = double(pkg_table_interp_aligned_scores.(aligned_score_name));
+%             valid_interp_idx = ~isnan(interpolated_scores_numeric) & ~isnan(pkg_table_interp_aligned_scores.Aligned_PKG_UnixTimestamp);
+%             if sum(valid_interp_idx) > 0
+%                 plot(ax, pkg_table_interp_aligned_scores.Aligned_PKG_UnixTimestamp(valid_interp_idx), interpolated_scores_numeric(valid_interp_idx), '.-', 'DisplayName', ['Interpolated PKG (' num2str(pkg_interpolation_interval_sec) 's)'], 'Color', 'r', 'MarkerSize', 10);
+%             end
+% 
+%             hold(ax, 'off');
+%             xlabel(ax, 'Unix Timestamp (seconds)');
+%             ylabel(ax, strrep(score_name, '_', ' '));
+%             title(ax, ['PKG Interpolation Check: ' strrep(score_name, '_', ' ') ' for ' patient_id_from_step1]);
+%             legend(ax, 'show', 'Location', 'best');
+%             grid(ax, 'on');
+% 
+%             % Pretty up the x-axis with actual dates
+%             if sum(valid_orig_idx)>0 || sum(valid_interp_idx) >0
+%                 xlim_val = xlim(ax);
+%                 xticks_val = xticks(ax);
+%                 xticklabels_val = cellstr(datetime(xticks_val, 'ConvertFrom', 'posixtime', 'TimeZone',  sprintf('%+03d:00', UTCoffset_hours), 'Format', 'MM-dd HH:mm'));
+%                 set(ax, 'XTickLabel', xticklabels_val, 'XTickLabelRotation', 30);
+%                 xlabel(ax, sprintf('Time (Local, UTC%+d)', UTCoffset_hours));
+%             end
+% 
+%             try
+%                 saveas(fig_h, fullfile(vis_pkg_output_folder, sprintf('PKG_Interp_%s_%s_%s.png', patient_id_from_step1, neural_hemisphere, score_name)));
+%                 fprintf('  - Saved visualization for %s\n', score_name);
+%             catch ME_save
+%                  warning('Could not save PKG visualization for %s. Error: %s', score_name, ME_save.message);
+%             end
+%             close(fig_h);
+%         else
+%             fprintf('  - Skipping visualization for %s (column not found in original or interpolated table).\n', score_name);
+%         end
+%         fprintf('📊 Interpolated PKG points available: %d\n', height(pkg_table_interp_aligned_scores));
+%     end
+% else
+%     fprintf('  Skipping PKG interpolation visualization (insufficient data).\n');
+% end
+% 
 
 %% 4. Convert Neural Timestamps in combinedDataTable (Master Table)
 fprintf('\nVerifying neural data timestamps in master combinedDataTable...\n');
@@ -366,16 +375,83 @@ if ~isnumeric(combinedDataTable.Neural_UnixTimestamp)
     error('"Neural_UnixTimestamp" column is not numeric.');
 end
 
+fprintf('\n🧠 Neural & PKG time range check:\n');
+min_neural_time = min(combinedDataTable.Neural_UnixTimestamp);
+max_neural_time = max(combinedDataTable.Neural_UnixTimestamp);
+fprintf('  Neural timestamp range: %.2f to %.2f (seconds)\n', min_neural_time, max_neural_time);
+
+min_pkg_time = min(pkg_table_interp_aligned_scores.Aligned_PKG_UnixTimestamp);
+max_pkg_time = max(pkg_table_interp_aligned_scores.Aligned_PKG_UnixTimestamp);
+fprintf('  Interpolated PKG timestamp range: %.2f to %.2f (seconds)\n', min_pkg_time, max_pkg_time);
+
+
 %% 5. Preprocess Neural Channels, Segment, Calculate PSD, Align (using Master Table)
 fprintf('\nProcessing neural channels from Master combinedDataTable (using parallel processing)...\n');
 fs = 250; % Sampling rate
 pwelch_config.fs = fs; % Set fs in pwelch_config here, it will be broadcast to parfor workers
 fprintf('Assuming consistent sampling rate Fs = %.1f Hz for all processed channels.\n', fs);
 
+% *** ADD THIS LINE BEFORE PARFOR ***
+half_neural_segment_duration_sec = target_neural_segment_duration_sec / 2;
 % --- PARFOR MODIFICATION START ---
 % Time to unleash the parallel processing power!
 num_channels_to_process = length(channels_to_process);
 channel_processing_results = cell(1, num_channels_to_process); % Cell array to store results from each worker
+
+% Define this variable BEFORE parfor so it's available for debugging
+
+
+% %% DEBUG: Check data before parfor processing
+% fprintf('\n=== DEBUGGING BEFORE PARFOR ===\n');
+% fprintf('PKG interpolated data summary:\n');
+% fprintf('  - PKG points: %d\n', height(pkg_table_interp_aligned_scores));
+% fprintf('  - PKG time range: %.0f to %.0f\n', min(pkg_table_interp_aligned_scores.Aligned_PKG_UnixTimestamp), max(pkg_table_interp_aligned_scores.Aligned_PKG_UnixTimestamp));
+% 
+% fprintf('\nNeural data summary:\n');
+% fprintf('  - Neural points: %d\n', height(combinedDataTable));
+% fprintf('  - Neural time range: %.0f to %.0f\n', min(combinedDataTable.Neural_UnixTimestamp), max(combinedDataTable.Neural_UnixTimestamp));
+% 
+% fprintf('\nSegment window parameters:\n');
+% fprintf('  - Target segment duration: %.1f seconds\n', target_neural_segment_duration_sec);
+% fprintf('  - Half window: %.1f seconds\n', target_neural_segment_duration_sec/2);
+% 
+% % Test the first few PKG timepoints manually
+% fprintf('\nTesting first 3 PKG timepoints for potential segments:\n');
+% % half_neural_segment_duration_sec = target_neural_segment_duration_sec / 2;
+% for test_i = 1:min(3, height(pkg_table_interp_aligned_scores))
+%     pkg_time = pkg_table_interp_aligned_scores.Aligned_PKG_UnixTimestamp(test_i);
+%     target_start = pkg_time - half_neural_segment_duration_sec;
+%     target_end = pkg_time + half_neural_segment_duration_sec;
+%     
+%     neural_indices = find(combinedDataTable.Neural_UnixTimestamp >= target_start & ...
+%                          combinedDataTable.Neural_UnixTimestamp < target_end);
+%     
+%     fprintf('  PKG point %d (time=%.0f):\n', test_i, pkg_time);
+%     fprintf('    Window: %.0f to %.0f\n', target_start, target_end);
+%     fprintf('    Neural points in window: %d\n', length(neural_indices));
+%     
+%     if ~isempty(neural_indices)
+%         % Check first channel as example
+%         test_channel = channels_to_process{1};
+%         test_data = combinedDataTable.(test_channel)(neural_indices);
+%         nan_pct = sum(isnan(test_data)) / length(test_data) * 100;
+%         fprintf('    %s: %.1f%% NaNs in this window\n', test_channel, nan_pct);
+%     end
+% end
+% 
+% fprintf('\nOverall temporal alignment check:\n');
+% overlap_start = max(min(combinedDataTable.Neural_UnixTimestamp), min(pkg_table_interp_aligned_scores.Aligned_PKG_UnixTimestamp));
+% overlap_end = min(max(combinedDataTable.Neural_UnixTimestamp), max(pkg_table_interp_aligned_scores.Aligned_PKG_UnixTimestamp));
+% overlap_duration_hours = (overlap_end - overlap_start) / 3600;
+% fprintf('  Actual overlap: %.2f hours (%.0f to %.0f)\n', overlap_duration_hours, overlap_start, overlap_end);
+% 
+% if overlap_duration_hours <= 0
+%     fprintf('  ❌ NO ACTUAL OVERLAP! This explains why no segments are generated.\n');
+% else
+%     fprintf('  ✅ Overlap exists, issue is likely in segment filtering logic.\n');
+% end
+% 
+% fprintf('=== END DEBUGGING ===\n\n');
 
 parfor i_ch = 1:num_channels_to_process
     % Get current channel key for this worker
@@ -394,24 +470,7 @@ parfor i_ch = 1:num_channels_to_process
     local_pkg_table_interp_aligned_scores = pkg_table_interp_aligned_scores; % Read-only for segmentation
 
     % Determine electrode label for current channel
-    current_electrode_label = 'Unknown';
-    if isfield(local_electrode_info, channel_key_in_cdt)
-        chan_info = local_electrode_info.(channel_key_in_cdt);
-        label_parts = {};
-        if isfield(chan_info, 'location') && ~isempty(chan_info.location) && ~strcmpi(chan_info.location, 'Unknown')
-             label_parts{end+1} = chan_info.location;
-        end
-         if isfield(chan_info, 'contacts') && ~isempty(chan_info.contacts) && ~strcmpi(chan_info.contacts, 'Unknown')
-             label_parts{end+1} = chan_info.contacts;
-        end
-        if ~isempty(label_parts)
-            current_electrode_label = strrep(strjoin(label_parts, '_'), '/', '_');
-        else
-             current_electrode_label = channel_key_in_cdt;
-        end
-    else
-        current_electrode_label = channel_key_in_cdt;
-    end
+    current_electrode_label = channel_key_in_cdt;
     % fprintf inside parfor can be messy due to interleaved output. 
     % Consider removing or logging to a file/variable if detailed per-channel logs are needed.
     % For now, this will print, but expect interleaved messages.
@@ -426,6 +485,15 @@ parfor i_ch = 1:num_channels_to_process
     channel_raw_neural_data = local_combinedDataTable.(channel_key_in_cdt);
     channel_raw_unix_time_sec = local_combinedDataTable.Neural_UnixTimestamp;
 
+    % if i_ch == 1  % Only do this once
+    %     all_nan_mask = all(ismissing(local_combinedDataTable(:, channels_to_process)), 2);
+    %     num_removed = sum(all_nan_mask);
+    %     if num_removed > 0
+    %         fprintf('Removed %d rows where all selected channels are NaN.\n', num_removed);
+    %     end
+    %     local_combinedDataTable(all_nan_mask, :) = [];
+    % end
+
     if ~isnumeric(channel_raw_neural_data) || ~isnumeric(channel_raw_unix_time_sec)
         %  fprintf('  Channel %s data or its Unix time is not numeric. Worker skipping.\n', channel_key_in_cdt);
          channel_processing_results{i_ch} = {};
@@ -438,15 +506,45 @@ parfor i_ch = 1:num_channels_to_process
     end
 
     data_processed = double(channel_raw_neural_data);
+    
+    % DEBUG: Add this for the first channel only to avoid spam
+    if i_ch == 1
+        fprintf('  DEBUG Channel %s:\n', channel_key_in_cdt);
+        fprintf('    Neural data points: %d\n', length(channel_raw_neural_data));
+        fprintf('    NaN percentage: %.1f%%\n', sum(isnan(channel_raw_neural_data))/length(channel_raw_neural_data)*100);
+        fprintf('    PKG points to check: %d\n', height(local_pkg_table_interp_aligned_scores));
+        
+        % Test first PKG point
+        if height(local_pkg_table_interp_aligned_scores) > 0
+            test_pkg_time = local_pkg_table_interp_aligned_scores.Aligned_PKG_UnixTimestamp(1);
+            test_start = test_pkg_time - half_neural_segment_duration_sec;
+            test_end = test_pkg_time + half_neural_segment_duration_sec;
+            test_indices = find(channel_raw_unix_time_sec >= test_start & channel_raw_unix_time_sec < test_end);
+            fprintf('    First PKG point test: %d neural samples in window\n', length(test_indices));
+            
+            if ~isempty(test_indices)
+                test_segment = data_processed(test_indices);
+                test_nan_pct = sum(isnan(test_segment)) / length(test_segment) * 100;
+                fprintf('    Test segment: %d samples, %.1f%% NaNs\n', length(test_segment), test_nan_pct);
+            end
+        end
+    end
 
     % Apply high-pass filter if requested
     if apply_high_pass_filter
         % fprintf('  Worker %d applying high-pass filter to %s...\n', i_ch, channel_key_in_cdt);
         try
-            [b_hp, a_hp] = butter(high_pass_order/2, high_pass_cutoff/(local_fs/2), 'high');
-            [data_processed, ~] = applyFilterToValidSegments(data_processed, local_fs, b_hp, a_hp, min_continuous_chunk_for_filter_sec);
-        catch ME_hp
-             % warning('High-pass filtering failed for channel %s (Worker %d). Error: %s.', channel_key_in_cdt, i_ch, ME_hp.message);
+            fir_order = 256;  % You can tune this based on fs and data length
+            cutoff_hz = high_pass_cutoff;
+            d = designfilt('highpassfir', ...
+                'FilterOrder', 256, ...
+                'CutoffFrequency', 1, ...
+                'SampleRate', fs);
+
+            [data_processed, ~] = applyFilterToValidSegments_FIR(data_processed,d, min_continuous_chunk_for_filter_sec);
+
+            disp(size(data_processed));
+        catch 
         end
     end
 
@@ -459,7 +557,7 @@ parfor i_ch = 1:num_channels_to_process
 
     % fprintf('  Worker %d generating aligned %.1f-second PSD segments for %s...\n', i_ch, target_neural_segment_duration_sec, channel_key_in_cdt);
     num_segments_this_channel_worker = 0;
-    half_neural_segment_duration_sec = target_neural_segment_duration_sec / 2;
+    % half_neural_segment_duration_sec = target_neural_segment_duration_sec / 2;
 
     % Loop through each interpolated PKG timepoint
     for i_pkg_pt = 1:height(local_pkg_table_interp_aligned_scores)
@@ -472,7 +570,7 @@ parfor i_ch = 1:num_channels_to_process
 
         neural_indices_in_window = find(channel_raw_unix_time_sec >= target_start_unixtime_sec & ...
                                           channel_raw_unix_time_sec < target_end_unixtime_sec);
-
+        
         if isempty(neural_indices_in_window), continue; end
 
         neural_segment_data = data_processed(neural_indices_in_window);
@@ -485,19 +583,25 @@ parfor i_ch = 1:num_channels_to_process
         % Check if segment duration is close enough to what we want
         expected_duration_span_ideal_sec = target_neural_segment_duration_sec;
         actual_duration_span_sec = actual_end_unixtime_datapoint_sec - actual_start_unixtime_sec;
-        duration_tolerance_sec = max(10/local_fs, 0.005 * target_neural_segment_duration_sec);
-        
+        % duration_tolerance_sec = max(10/local_fs, 0.005 * target_neural_segment_duration_sec);
+        duration_tolerance_sec = 1.5;
         if abs(actual_duration_span_sec - expected_duration_span_ideal_sec) > duration_tolerance_sec, continue; end
         
         % Check for too many NaNs
         nan_percentage = sum(isnan(neural_segment_data)) / actual_num_samples * 100;
-        max_nan_percentage = 50;
-        if nan_percentage > max_nan_percentage, continue; end
-
+        max_nan_percentage = 90;
+        if nan_percentage > max_nan_percentage
+%             fprintf('[%s] ⚠️ Segment rejected due to %.1f%% NaNs\n', channel_key_in_cdt, nan_percentage);
+            continue;
+        end
         % Make sure we have enough valid data for pwelch
         valid_points_in_segment = neural_segment_data(~isnan(neural_segment_data));
         win_pwelch_samples = round(local_pwelch_config.window_duration_sec * local_fs);
-        if length(valid_points_in_segment) < win_pwelch_samples, continue; end
+        if length(valid_points_in_segment) < win_pwelch_samples
+            fprintf('[%s] ⚠️ Too few valid points for Welch: %d valid < %d required\n', ...
+                channel_key_in_cdt, length(valid_points_in_segment), win_pwelch_samples);
+            continue;
+        end
         if win_pwelch_samples <= 0, continue; end
 
         % Calculate PSD using pwelch
@@ -506,9 +610,16 @@ parfor i_ch = 1:num_channels_to_process
         
         psd_vector = []; freq_vector = []; % Initialize to ensure they exist
         try
-            [psd_vector, freq_vector] = pwelch(valid_points_in_segment, hanning(win_pwelch_samples), noverlap_pwelch_samples, nfft_pwelch, local_fs);
+            hanning_window = 0.5 - 0.5 * cos(2 * pi * (0:(win_pwelch_samples - 1))' / (win_pwelch_samples - 1));
+            psd_vector = [];
+            freq_vector = [];
+            [psd_vector, freq_vector] = pwelch(valid_points_in_segment, ...
+                                               hanning_window, ...
+                                               noverlap_pwelch_samples, ...
+                                               nfft_pwelch, ...
+                                               local_fs);
         catch ME_pwelch
-            % warning('pwelch failed for segment (Worker %d, Channel %s, PKG time %.2f). Error: %s. Skipping.', i_ch, channel_key_in_cdt, current_aligned_pkg_unixtime, ME_pwelch.message);
+            fprintf('[%s] PSD error: %s\n', channel_key_in_cdt, ME_pwelch.message);
             continue;
         end
 
@@ -542,6 +653,8 @@ parfor i_ch = 1:num_channels_to_process
         end
         segments_for_this_channel{end+1} = entry; % Add to this worker's list for this channel
         num_segments_this_channel_worker = num_segments_this_channel_worker + 1;
+
+
     end 
     
     channel_processing_results{i_ch} = segments_for_this_channel; % Store all segments from this worker
@@ -604,8 +717,8 @@ fprintf('\nSaving processing parameters...\n');
 params_for_json.patient_id = patient_id_from_step1;
 params_for_json.neural_hemisphere = neural_hemisphere;
 params_for_json.pkg_data_hemisphere_used = contralateral_pkg_hemisphere;
-params_for_json.channels_processed = channels_to_process;
-params_for_json.electrode_info_used = electrode_info;
+%params_for_json.channels_processed = channels_to_process;
+%params_for_json.electrode_info_used = electrode_info;
 params_for_json.target_neural_segment_duration_sec = target_neural_segment_duration_sec;
 params_for_json.pkg_interpolation_interval_sec = pkg_interpolation_interval_sec;
 params_for_json.pwelch_config_used_in_matlab = pwelch_config; % Original pwelch_config
@@ -741,5 +854,66 @@ function out_val = str2doubleq(str_val_cell_element)
         end
     else
          out_val = NaN;
+    end
+end
+
+
+function [filtered_data, segments_too_short] = applyFilterToValidSegments_FIR(data, d, min_duration_sec_for_filter)
+    % Applies FIR filter object d to non-NaN segments using filtfilt
+
+    fs_filt = d.SampleRate;
+    if ~isvector(data)
+        error('Input data must be a vector.');
+    end
+    if ~isnumeric(data) || ~isa(data,'double')
+        data = double(data);
+    end
+
+    nan_indices = isnan(data);
+    transitions = diff([1; nan_indices(:); 1]);
+    segment_starts = find(transitions == -1);
+    segment_ends = find(transitions == 1) - 1;
+
+    filtered_data = data;
+    segments_too_short = 0;
+
+    min_samples_duration_based = round(min_duration_sec_for_filter * fs_filt);
+    min_samples_for_filtfilt = 3 * d.FilterOrder;  % FilterOrder works for FIR
+    min_total_samples_required = max(min_samples_for_filtfilt, min_samples_duration_based);
+
+    if isempty(segment_starts) && ~all(nan_indices)
+        if length(data) < min_total_samples_required
+            segments_too_short = 1;
+            filtered_data(:) = NaN;
+        else
+            try
+                filtered_data = filtfilt(d, data);
+            catch
+                filtered_data(:) = NaN;
+            end
+        end
+        return;
+    elseif all(nan_indices)
+        return;
+    end
+
+    for i = 1:length(segment_starts)
+        seg_start_idx = segment_starts(i);
+        seg_end_idx = segment_ends(i);
+        seg_len = seg_end_idx - seg_start_idx + 1;
+
+        if seg_len < min_total_samples_required
+            segments_too_short = segments_too_short + 1;
+            filtered_data(seg_start_idx:seg_end_idx) = NaN;
+            continue;
+        end
+
+        segment = data(seg_start_idx:seg_end_idx);
+        try
+            filtered_segment = filtfilt(d, segment);
+            filtered_data(seg_start_idx:seg_end_idx) = filtered_segment;
+        catch
+            filtered_data(seg_start_idx:seg_end_idx) = NaN;
+        end
     end
 end
