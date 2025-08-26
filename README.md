@@ -1,9 +1,5 @@
-<img width="678" height="207" alt="image" src="https://github.com/user-attachments/assets/1ad14d21-c77a-41eb-9b6c-c4a854c1f809" /># Analysis-rcs-aperiodic
 
-##Script Explanation
-
-
-
+<img width="517" height="158" alt="Screenshot 2025-08-26 at 4 44 02 PM" src="https://github.com/user-attachments/assets/803174cb-db80-4b42-bfa5-7ca9d121e32e" />
 
 ## Important: File and Data Structure
 This project follows a specific directory structure to keep code and data organized. Below is an overview of this structure:  
@@ -69,4 +65,25 @@ All scripts were ran on the curated RCS 3 Day Sprint Data arranged by RCS number
 ### Step 4 – Perform statistical analysis, MLR modelling and visualisation (PYTHON)
 - step4_github_fix.ipynb
 **Output**: Statistical plots + csv.
+
+
+Step2/3/4 results are in:  /home/jackson/step2_final
+Step3/4 results for specparam w/ regularization at: /home/jackson/step2_final/step3_fooof_results_neural_pkg_aligned_finalstep3_bushlab5000
+Step3/4 results for original fooof at:
+/home/jackson/step2_final/step3_fooof_results_neural_pkg_aligned_finalstep3_fooof
+Most updated collated Step4 at:
+/home/jackson/step2_final/step3_fooof_results_neural_pkg_aligned_finalstep3_bushlab5000/step4_within_subject/COHORT_RCS02_05_06_plots_20250822_155044
+Presentation at
+/home/jackson/AperiodicJacksonPresentationStarrLittle.pptx
+Lit review at (two sub-excels)
+/home/jackson/combined_methods (1).xlsx
+Code Breakdown
+/home/jackson/CodeBreakdown.docx
+Specparam w/ regularization
+/home/jackson/fooof_specparam_regularisation
+Main code:
+/home/jackson/Main code - final
+Relevant Data
+/home/jackson/Papers
+
 
