@@ -6,80 +6,111 @@
 % and metadata to a JSON file.
 %
 % Assumes Step 1 has generated a 'Step1_MasterData_[Patient]_[Hemi]_AllSessions.mat' file.
+% Batch-safe clear: skip clearing when driven by a batch wrapper
+%% Step2_github.m
+%
+% This script preprocesses RCS data from a MASTER combinedDataTable (output from Step1_MasterData),
+% aligns the CENTER of 120s neural windows with interpolated PKG data timestamps (at 30s intervals),
+% calculates PSDs, adds PKG interpolation visualization, and saves the output table to a CSV file
+% and metadata to a JSON file.
+%
+% Assumes Step 1 has generated a 'Step1_MasterData_[Patient]_[Hemi]_AllSessions.mat' file.
 
-clear;
-close all;
-clc;
+% Batch-safe clear: skip clearing when driven by a batch wrapper
+if ~(exist('BATCH_MODE','var') && BATCH_MODE)
+    clear; close all; clc;
+end
 
-%% 1. Configuration Settings
-fprintf('Starting Step 2');
+%% 1) Configuration
+fprintf('Starting Step 2\n');
 
 script_run_folder = pwd;
-%project_base_path = fullfile(script_run_folder, '..'); % Assumes script is run from a 'scripts' or similar folder
-project_base_path = '/home/jackson';
-% --- Input Step 1  Master Data ---
-% <<< ADJUST THE FOLLOWING PARAMETERS AS NEEDED >>>
-target_patient_folder_step1 = 'RCS02R'; % fPatient identifier used in Step 1 master filename
-target_hemisphere_step1 = 'Right';   % Hemisphere identifier used in Step 1 master filename
-% ---
-step1_master_mat_filename = sprintf('Step1_MasterData_RCS02R_Right_AllSessions.mat', target_patient_folder_step1, target_hemisphere_step1);
-processed_data_folder_step1 = fullfile(project_base_path, 'step1_processed_data_multi_session_final_newnaming_tester'); % Folder where Step 1 master files are saved
+
+% -------- DEFAULTS (Linux paths). Batch runner will override these --------
+% Patient & hemisphere defaults (only used if no batch config provided):
+target_patient_folder_step1  = 'RCS05R';     % e.g., 'RCS06R', 'RCS05L'
+target_hemisphere_step1      = 'Right';      % 'Left' or 'Right'
+
+% Base project folder for this patient (will be overridden in batch mode)
+% Expected layout: /home/jackson/Folder/<Patient>/{PKG, Step1_MasterData_...mat}
+project_base_path           = '/home/jackson/Folder/RCS05';
+processed_data_folder_step1 = project_base_path;                     % .mat lives here
+pkg_base_data_folder        = fullfile(project_base_path, 'PKG');    % PKG/<Left|Right>
+
+% Toolbox path
+toolbox_path = '/home/jackson/Analysis-rcs-data';
+fprintf('Analysis-rcs-data toolbox found at: %s\n', toolbox_path);
+addpath(genpath(toolbox_path));
+
+% -------- Batch overrides happen BEFORE any derived paths are built --------
+if exist('BATCH_MODE','var') && BATCH_MODE && exist('BATCH_CFG','var')
+    target_patient_folder_step1  = BATCH_CFG.target_patient_folder_step1;
+    target_hemisphere_step1      = BATCH_CFG.target_hemisphere_step1;
+    processed_data_folder_step1  = BATCH_CFG.processed_data_folder_step1;
+    pkg_base_data_folder         = BATCH_CFG.pkg_base_data_folder;
+    project_base_path            = BATCH_CFG.project_base_path;
+    preprocessed_output_folder   = BATCH_CFG.preprocessed_output_folder; % may be provided
+end
+
+% -------- Build derived paths AFTER overrides --------
+step1_master_mat_filename   = sprintf('Step1_MasterData_%s_%s_AllSessions.mat', ...
+                                      target_patient_folder_step1, target_hemisphere_step1);
 load_file_path_step1_master = fullfile(processed_data_folder_step1, step1_master_mat_filename);
 
+% Output folder (use batch-provided folder if available; otherwise default)
+if ~exist('preprocessed_output_folder','var') || isempty(preprocessed_output_folder)
+    preprocessed_output_folder = fullfile(project_base_path, ...
+        sprintf('step2_final_%s_%s', target_patient_folder_step1, target_hemisphere_step1));
+end
+if ~isfolder(preprocessed_output_folder), mkdir(preprocessed_output_folder); end
+fprintf('Step 2 output will be saved to: %s\n', preprocessed_output_folder);
+
+% Existence check AFTER overrides are applied
 if ~isfile(load_file_path_step1_master)
     error('Specified Step 1 Master MAT file not found: %s', load_file_path_step1_master);
 end
 
-
-% --- Toolbox Path ---
-toolbox_path = '/home/jackson/Analysis-rcs-data'
-fprintf('Analysis-rcs-data toolbox found at: %s\n', toolbox_path);
-
-% --- Output Folder ---
-preprocessed_output_folder = fullfile(project_base_path, sprintf('step2_preprocessed_data_120s_neural_aligned_%s_%s_AllSessions_newnaming_tester', target_patient_folder_step1, target_hemisphere_step1));
-if ~isfolder(preprocessed_output_folder), mkdir(preprocessed_output_folder); end
-fprintf('Step 2 output will be saved to: %s\n', preprocessed_output_folder);
-
-% --- Neural Data Processing Parameters ---
-%channels_to_process = {'TD_key0', 'TD_key1', 'TD_key2', 'TD_key3'}; % Channels from combinedDataTable
-% stim_blanking_window_ms = 10; % Duration around stim pulse to NaN out
-use_stim_blanking = false; % IMPORTANT: Stim blanking on a master combined table is complex.
-                         % Assuming false for now, or that it was handled prior to Step 1 combination.
-                         % If true, stimLogSettings would need to be aggregated and applied carefully.
-% --- Automatically detect all channels of the form Contact_x_x ---
-
-% High-pass filter params - keeping this one since it's actually useful
-high_pass_cutoff = 1; % Hz, cutoff frequency for high-pass filter
-high_pass_order = 4; % Order for Butterworth high-pass filter design
-apply_high_pass_filter = true; % Apply high-pass filter?
-min_continuous_chunk_for_filter_sec = 5.0; % Min duration of data without NaNs needed to apply filter
-
-% --- Segmentation and PSD Parameters ---
-target_neural_segment_duration_sec = 30.0; % Desired duration of each neural segment for PSD
-pwelch_config.window_duration_sec = 2.0; % Increased for better low-freq resolution, e.g., 2.0s or 4.0s
-pwelch_config.overlap_percent = 50;
-pwelch_config.nfft_multiplier = 1; % NFFT = window length * nfft_multiplier
-freq_ranges_for_fooof.LowFreq = [10, 40];
-freq_ranges_for_fooof.MidFreq = [30, 90];
-freq_ranges_for_fooof.WideFreq = [10, 90];
-
 % --- PKG Data Parameters ---
 pkg_interpolation_interval_sec = 30.0;
-pkg_base_data_folder = fullfile('/home/jackson', 'PKG'); % <<< ADJUST PATH AS NEEDED
+% Default PKG folder already set above; batch overrides point to /home/jackson/Folder/<Patient>/PKG
 default_pkg_filename_pattern = 'scores_*.csv';
+
+% --- Neural Preprocessing ---
+apply_high_pass_filter = true;
+high_pass_cutoff       = 1;        % Hz
+min_continuous_chunk_for_filter_sec = 5.0; %#ok<NASU>
+
+% --- Segmentation and PSD Parameters ---
+target_neural_segment_duration_sec = 30.0;   % CENTER-aligned 120 s window
+pwelch_config.window_duration_sec  = 2.0;
+pwelch_config.overlap_percent      = 50;
+pwelch_config.nfft_multiplier      = 1;
+
+% --- FOOOF ranges (metadata only here) ---
+freq_ranges_for_fooof.LowFreq  = [10, 40];
+freq_ranges_for_fooof.MidFreq  = [30, 90];
+freq_ranges_for_fooof.WideFreq = [10, 90];
+
+% --- Stim blanking flag (not used here) ---
+use_stim_blanking = false;
+
+% --- Initialize counters used later
+num_rows_written = 0;
+
+
 
 %% 2. Load Step1 Master Processed RC+S Data
 fprintf('\nLoading Step1 Master data from: %s\n', load_file_path_step1_master);
 data_step1_master = load(load_file_path_step1_master);
 
-required_master_vars = {'combinedDataTable_AllSessions', 'electrode_info_Master', 'all_metaData_Master', 'target_patient_folder', 'target_hemisphere'};
+required_master_vars = {'combinedDataTable_AllSessions', 'all_metaData_Master', 'target_patient_folder', 'target_hemisphere'};
 missing_vars = setdiff(required_master_vars, fieldnames(data_step1_master));
 if ~isempty(missing_vars)
     error('Missing required variable(s) "%s" from Step1 Master MAT file: %s.', strjoin(missing_vars, ', '), load_file_path_step1_master);
 end
 
 combinedDataTable = data_step1_master.combinedDataTable_AllSessions;
-electrode_info = data_step1_master.electrode_info_Master;
+
 all_metaData = data_step1_master.all_metaData_Master;
 
 
@@ -466,7 +497,7 @@ parfor i_ch = 1:num_channels_to_process
     local_fs = fs; % fs is defined outside and read-only within the loop
     local_pwelch_config = pwelch_config; % pwelch_config is a struct defined outside
     local_combinedDataTable = combinedDataTable; % For reading channel data and timestamps
-    local_electrode_info = electrode_info; % For reading channel labels
+
     local_pkg_table_interp_aligned_scores = pkg_table_interp_aligned_scores; % Read-only for segmentation
 
     % Determine electrode label for current channel
