@@ -20,8 +20,8 @@ fprintf('Analysis-rcs-data toolbox found at: %s\n', toolbox_path);
 addpath(genpath(toolbox_path)) 
 
 %main_data_root = fullfile(base_path, 'RCS02 3 day sprint (05152019-05292019)/SCBS (Session1557950618572-1559185447897)');
-main_data_root = '/media/shortterm_ssd/jackson/RCS05_(03JUL2019-05JUL2019)/SCBS/';
-output_path = fullfile(base_path, 'jackson/step1_processed_data_multi_session_final_new/05');
+main_data_root = '/home/jackson/Downloads/RCS06 3 day sprint (10AUG2019-13AUG2019)/SCBS';
+output_path = fullfile(base_path, 'jackson/step1_processed_data_multi_session_final_new/06');
 if ~exist(output_path, 'dir')
     mkdir(output_path);
     fprintf('Created output directory: %s\n', output_path);
@@ -31,8 +31,8 @@ vis_output_dir = fullfile(output_path, 'visualizations_per_session');
 if ~exist(vis_output_dir, 'dir'), mkdir(vis_output_dir); end
 
 %% 2. Define Target Patient and Hemisphere
-target_patient_folder = 'RCS05L'; 
-target_hemisphere = 'Left';   
+target_patient_folder = 'RCS06R'; 
+target_hemisphere = 'Right';   
 process_rcs_flag = 3; 
 default_TD_samplerate = 250; % Default Fs for TimeDomain if parsing fails
 default_Accel_samplerate = 64; % Default Fs for Accelerometer if parsing fails (adjust as needed)
@@ -52,7 +52,7 @@ successfully_processed_sessions_details = table('Size',[0 3],'VariableTypes',{'s
                                            'VariableNames',{'PatientFolder','SessionFolder','IndividualMatFilePath'});
 
 %% 4. Identify and Loop Through Session Folders
-session_folder_pattern = 'session*';
+session_folder_pattern = 'Session*';
 session_listing = dir(fullfile(patient_data_path, session_folder_pattern));
 session_folders = session_listing([session_listing.isdir]);
 %session_folders = session_folders(strcmp({session_folders.name}, ['session1558253403643']));
@@ -360,9 +360,9 @@ clear; clc;
 fprintf('Rebuilding master MAT file from individual sessions (parallel)...\n');
 
 % --- Configuration ---
-output_path            = '/home/jackson/step1_processed_data_multi_session_final_new/05'; % Update as needed
-target_patient_folder  = 'RCS05R';
-target_hemisphere      = 'Right';
+output_path            = '/home/jackson/step1_processed_data_multi_session_final_new/06'; % Update as needed
+target_patient_folder  = 'RCS06L';
+target_hemisphere      = 'Left';
 
 % Find all individual .mat files
 mat_files = dir(fullfile(output_path, sprintf('Step1_SessData_%s_%s_*.mat', target_patient_folder, target_hemisphere)));
