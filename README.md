@@ -38,7 +38,7 @@ All scripts were ran on the curated RCS 3 Day Sprint Data arranged by RCS number
 
 ### How to Implement and Use
 
-1.  When you clone or download this project, ensure the `Umbrella/` folder is your main project directory.
+1.  When you clone or download this project, ensure the `Umbrella/` folder is your main project directory. Ensure specparam with regularisation is installed.
 2.  **Place Data**:
     * Ensure your data is organized into the respective `RCS02` through `RCS20` subfolders within the `Umbrella/Data/` directory.
 3.  **Run Code**: Navigate to the `Umbrella/Code/` directory to execute any scripts. Ensure your scripts are written to find data in the `../Data/RCSXX/` relative path or can be configured to find the data.
@@ -69,38 +69,4 @@ All scripts were ran on the curated RCS 3 Day Sprint Data arranged by RCS number
 ### Step 4 – Perform statistical analysis, MLR modelling and visualisation (PYTHON)
 - step4_github_fix.ipynb
 **Output**: Statistical plots + csv.
-
-
-## Suggested Mini-Project: Exploring Aperiodic Features Across Movement States
-
-This section outlines a potential mini-project that can leverage the existing codebase and foundational analysis to explore a specific follow-up question. It is designed to facilitate deeper understanding of the data and methods.
-
-### Objective
-
-A potential research question:  
-*   "How might the correlation directions and strengths between aperiodic features (e.g., exponent, offset) and granular Parkinson's symptoms (e.g., bradykinesia, dyskinesia, tremor) vary across different, defined movement states (e.g., immobile, non-dyskinetic mobile, dyskinetic mobile)?"  
-
-This question aligns with iterative discussions regarding the nuanced relationship between aperiodic metrics and motor symptoms.  
-
-### Potential Approach & Tasks
-
-Guidance can be drawn from the existing `step4.ipynb` notebook and prior presentations. The following steps outline a possible approach:
-
-1.  **Understand Movement State Definitions:**
-    *   Get familiarized with the implementation of Movement States (e.g., Sleep, Immobile, Non-Dyskinetic Mobile, Transitional Mobile, Dyskinetic Mobile).
-    *   These states are defined and implemented at the beginning of the `step4.ipynb` notebook (refer to Cell 3 for point-by-point definitions). This implementation is consistent with prior work, such as "Motor network gamma oscillations in chronic home recordings predict dyskinesia in Parkinson's disease" (PMID: 38195196).
-
-2.  **Adapt Existing Analysis Code:**
-    *   The existing correlation and stratification code within `step4.ipynb` (e.g., logic similar to that in Cell 5, which performs state-specific correlations) can be modified.
-    *   This adaptation would focus on analyzing aperiodic-symptom relationships specifically within each of the pre-defined movement states.
-
-3.  **Analyze and Compare Results:**
-    *   The analysis can involve quantifying and comparing correlation strengths and directions across the different movement states.
-    *   Generate proper visualizations to clearly present the findings from the state-specific analyses.
-
-### Further Steps  
-
-Further characterization of the exponent and whether the offset provides predictive value in the same direction, particularly examining orthogonal predictive power within predefined states.  
-
-Exploratory analysis of the stimulation-on states, extending beyond the current 72h of naturalistic recordings in each patient. How does stimulation affect the aperiodic exponent?
 
